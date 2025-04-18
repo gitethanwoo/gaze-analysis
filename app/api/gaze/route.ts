@@ -8,7 +8,7 @@ const gazeSchema = z.object({
   results: z.array(
     z.object({
       frame: z.number().describe("Frame number (1-indexed)"),
-      gaze: z.boolean().describe("True if gaze is on-screen, false otherwise"),
+      gaze: z.boolean().describe("True if gaze is directed towards the camera or very near to it, false otherwise"),
       confidence: z
         .number()
         .describe("Confidence score (0-100) for the gaze determination"),
@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
       const { object } = await generateObject({
         model: google("gemini-2.5-flash-preview-04-17"),
         schema: gazeSchema,
-        prompt: `Your task is to analyze the direction of the person's gaze in each frame. The person is using a device (laptop or smartphone) with a front-facing camera capturing these images. Determine if their gaze is directed *towards the device's screen/camera* (on-screen = true) or elsewhere (off-screen = false). Looking down towards where a screen would typically be counts as on-screen. Looking significantly left, right, or up counts as off-screen. For each frame number (1-indexed), provide this true/false determination and a confidence score (0-100). If you cannot see the user's face or eyes, return false as well. If there is no person in the image, return false. Output the results according to the provided schema.\n\n${framesContent}`,
+        prompt: `Your task is to analyze the direction of the person's gaze in each frame. The person is using a device (laptop or smartphone) with a front-facing camera capturing these images. This means if the person is generally making eye contact with the camera, it is on-screen. Determine if their gaze is directed *towards the device's screen/camera* (on-screen = true) or elsewhere (off-screen = false). Facing the camera but with eyes tilted slightly below the camera counts as on-screen as laptop cameras and front facing phone cameras are often mounted above the screen itself. Looking significantly left, right, or up counts as off-screen. For each frame number (1-indexed), provide this true/false determination and a confidence score (0-100). If you cannot see the user's face or eyes, return false as well. If there is no person in the image, return false. Output the results according to the provided schema.\n\n${framesContent}`,
         system:
-          "You are a computer vision expert that analyzes gaze direction in images. 'On-screen' means directed towards the camera/device screen. You output structured JSON conforming to the provided schema.",
+          "You are a computer vision expert that analyzes gaze direction in images. 'On-screen' means directed towards the camera/device screen.  You output structured JSON conforming to the provided schema.",
       })
 
 
