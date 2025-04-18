@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/use-toast"
 interface GazeResult {
   frame: number
   gaze: boolean
+  eyesClosed: boolean
   confidence: number
 }
 
@@ -48,8 +49,8 @@ export default function GazeRecorder() {
     // Draw the current video frame to the canvas
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-    // Convert to data URL (JPEG with 60% quality)
-    return canvas.toDataURL("image/jpeg", 0.6)
+    // Convert to data URL (JPEG with 90% quality)
+    return canvas.toDataURL("image/jpeg", 0.9)
   }, [])
 
   // Start recording and capture frames during recording
@@ -324,7 +325,7 @@ export default function GazeRecorder() {
               return
             }
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.6)
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.9)
             frames.push(dataUrl)
             console.log(`Captured frame ${frames.length} at time ${video.currentTime}`)
           } catch (e) {
@@ -383,7 +384,7 @@ export default function GazeRecorder() {
                 return
               }
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-              const dataUrl = canvas.toDataURL("image/jpeg", 0.6)
+              const dataUrl = canvas.toDataURL("image/jpeg", 0.9)
               frames.push(dataUrl)
               framesCaptured++
               console.log(`Time-based capture: frame ${framesCaptured} at ${elapsed}ms`)
@@ -447,6 +448,7 @@ export default function GazeRecorder() {
                 ) : (
                   <XCircle className="size-4 text-red-600" />
                 )}
+                {result.eyesClosed && <span className="text-xs text-blue-600">(Eyes Closed)</span>}
                 <span className="text-sm text-gray-500">({result.confidence.toFixed(0)}%)</span>
               </div>
             </div>

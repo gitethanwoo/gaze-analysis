@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateObject } from "ai"
-import { google } from "@ai-sdk/google"
+import { generateText } from "ai"
+import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
 
 // Define the Zod schema for the expected output
@@ -9,6 +9,7 @@ const gazeSchema = z.object({
     z.object({
       frame: z.number().describe("Frame number (1-indexed)"),
       gaze: z.boolean().describe("True if gaze is directed towards the camera or very near to it, false otherwise"),
+      eyesClosed: z.boolean().describe("True if the user has their eyes closed, false otherwise"),
       confidence: z
         .number()
         .describe("Confidence score (0-100) for the gaze determination"),
@@ -33,17 +34,26 @@ export async function POST(request: NextRequest) {
 
     try {
       // Use generateObject with the schema
-      const { object } = await generateObject({
-        model: google("gemini-2.5-flash-preview-04-17"),
-        schema: gazeSchema,
-        prompt: `Your task is to analyze the direction of the person's gaze in each frame. The person is using a device (laptop or smartphone) with a front-facing camera capturing these images. This means if the person is generally making eye contact with the camera, it is on-screen. Determine if their gaze is directed *towards the device's screen/camera* (on-screen = true) or elsewhere (off-screen = false). Facing the camera but with eyes tilted slightly below the camera counts as on-screen as laptop cameras and front facing phone cameras are often mounted above the screen itself. Looking significantly left, right, or up counts as off-screen. For each frame number (1-indexed), provide this true/false determination and a confidence score (0-100). If you cannot see the user's face or eyes, return false as well. If the user has their eyes closed, return false. If there is no person in the image, return false. Output the results according to the provided schema.\n\n${framesContent}`,
-        system:
-          "You are a computer vision expert that analyzes gaze direction in images. 'On-screen' means directed towards the camera/device screen.  You output structured JSON conforming to the provided schema.",
+      const { text } = await generateText({
+        model: openai("gpt-4o-mini"),
+        prompt: `Your task is to analyze the direction of the person's gaze in each frame. The person is using a device (laptop or smartphone) with a front-facing camera capturing these images. This means if the person is generally making eye contact with the camera, it is on-screen. Determine if their gaze is directed *towards the device's screen/camera* (on-screen = 'gaze: true') or elsewhere (off-screen = 'gaze: false'). Facing the camera but with eyes tilted slightly below the camera counts as on-screen as laptop cameras and front facing phone cameras are often mounted above the screen itself. Looking significantly left, right, or up counts as off-screen. For each frame number (1-indexed), provide this true/false determination for 'gaze', a true/false value for 'eyesClosed', and a confidence score (0-100).
+
+Key Instructions:
+- If the person's eyes are clearly closed, set 'eyesClosed: true' AND 'gaze: false'.
+- If you cannot see the person's face or eyes clearly enough to determine gaze, set 'gaze: false' and 'eyesClosed: false'.
+- If there is no person in the image, set 'gaze: false' and 'eyesClosed: false'.
+- Otherwise, determine gaze direction ('gaze: true' for on-screen, 'gaze: false' for off-screen) and set 'eyesClosed: false'.
+
+Output the results according to the provided schema.
+
+${framesContent}`,
       })
 
 
       // Return the results array from the object
-      return NextResponse.json(object.results)
+      console.log(text)
+      return NextResponse.json(text)
+
     } catch (error) {
       console.error("Error calling OpenAI API or generating object:", error)
       // Add more specific error handling if needed based on 'error' type
