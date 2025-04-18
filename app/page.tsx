@@ -62,7 +62,11 @@ export default function GazeRecorder() {
 
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720 },
+        video: {
+          facingMode: 'user', // Prioritize front camera
+          width: { ideal: 1280 }, // Suggest dimensions
+          height: { ideal: 720 },
+        },
       })
 
       streamRef.current = stream
@@ -174,10 +178,15 @@ export default function GazeRecorder() {
       // a check inside the final timeout for robustness.
 
     } catch (error) {
-      console.error("Error during recording:", error)
+      console.error("Error starting recording:", error)
+      let message = "Unable to access your camera. Please check permissions and try again."
+      // Attempt to provide more specific error info
+      if (error instanceof Error) {
+        message = `Camera Error: ${error.name} - ${error.message}. Check permissions?`
+      }
       toast({
         title: "Camera Error",
-        description: "Unable to access your camera. Please check permissions and try again.",
+        description: message,
         variant: "destructive",
       })
       setRecording(false)
@@ -467,7 +476,7 @@ export default function GazeRecorder() {
       <Card className="max-w-md mx-auto">
         <CardContent className="p-6">
           <div className="relative w-full aspect-video bg-gray-100 rounded-md overflow-hidden">
-            <video ref={videoRef} autoPlay muted className="w-full h-full object-cover" />
+            <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
 
             {recording && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
